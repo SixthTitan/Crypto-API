@@ -1,0 +1,101 @@
+#  /**
+#    * Crypto Currency REST API
+#    * Grabs data from your Minehash Account and makes data available for reporting
+#    * @author Lauren Brown
+#    * @version 2021.10.19
+#    * @license Apache License 2.0
+#    */
+# cron(0 17 ? * MON-FRI *)
+
+# Name of our service
+service: crypto-api
+
+package:
+  exclude:
+    - node_modules/**
+
+custom:
+  # Our stage is based on what is passed in when running serverless
+  # commands. Or fallsback to what we have set in the provider section.
+  pythonRequirements:
+    dockerizePip: false
+    zip: true
+    slim: false
+
+
+# Provider information, etc.
+provider:
+  name: aws
+  runtime: python3.7
+  region: us-east-1
+  memorySize: 128
+  versionFunctions: false
+  apiGateway:
+    shouldStartNameWithService: true
+    apiKeys:
+      - user
+  environment:
+    Access_Key: 
+    Access_Secret: 
+    Access_Org: 
+    Access_Rig: 
+
+
+  
+# Function information, etc.  
+functions:
+  account:
+    handler: api.getAccount
+    events:
+      - http:
+          path: api/account
+          method: get
+          private: true
+
+  gecko:
+    handler: api.getGecko
+    events:
+      - http:
+          path: api/gecko
+          method: get
+          private: false
+
+  withdrawl:
+    handler: api.withdraw
+    events:
+      - schedule:
+          name: daily_withdraw
+          description: Checks hourly if a withdraw request can be made
+          rate: rate(1 hour) # Can also be an array of rate/cron expressions
+          enabled: true
+
+  startMiner_week:
+    handler: api.startMiner_week
+    events:
+      - schedule:
+          name: daily_startMiner_week
+          description: Starts the Miner on a daily basis during the weekday
+          rate: cron(0 10 ? * MON-THUR *) # Can also be an array of rate/cron expressions
+          enabled: true
+
+  startMiner_weekend:
+    handler: api.startMiner_weekend
+    events:
+      - schedule:
+          name: daily_startMiner_weekend
+          description: Starts the Miner on a daily basis during the weekend
+          rate: cron(0 12 ? * FRI-SUN *) # Can also be an array of rate/cron expressions
+          enabled: true
+
+  stopMiner:
+    handler: api.stopMiner
+    events:
+      - schedule:
+          name: daily_stopMiner
+          description: Stops the Miner on a daily basis
+          rate: cron(0 3 * * ? *) # Can also be an array of rate/cron expressions
+          enabled: true
+
+# Plugin requirements, etc.    
+plugins:
+  - serverless-python-requirements
